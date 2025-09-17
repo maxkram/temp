@@ -85,24 +85,27 @@ int read_one_matrix(int ***mat, int *rows, int *cols, int exp_n, int exp_m) {
 }
 
 int **alloc_matrix(int rows, int cols) {
-  int **matrix = malloc(rows * sizeof(int *));
-  if (!matrix)
-    return NULL;
-
+  int **matrix = NULL;
   int success = 1;
-  int i;
-  for (i = 0; i < rows && success; i++) {
-    matrix[i] = malloc(cols * sizeof(int));
-    if (!matrix[i])
-      success = 0;
-  }
+  int i = 0;
 
-  if (!success) {
-    for (int j = 0; j < i; j++) {
-      free(matrix[j]);
+  matrix = malloc(rows * sizeof(int *));
+  if (!matrix) {
+    success = 0;
+  } else {
+    for (i = 0; i < rows && success; i++) {
+      matrix[i] = malloc(cols * sizeof(int));
+      if (!matrix[i]) {
+        success = 0;
+      }
     }
-    free(matrix);
-    matrix = NULL;
+    if (!success) {
+      for (int j = 0; j < i; j++) {
+        free(matrix[j]);
+      }
+      free(matrix);
+      matrix = NULL;
+    }
   }
 
   return matrix;
