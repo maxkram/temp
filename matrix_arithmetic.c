@@ -12,70 +12,62 @@ int mul_matrices(int **a, int n1, int m1, int **b, int n2, int m2, int ***res,
                  int *nr, int *mr);
 int transpose_matrix(int **a, int n, int m, int ***res, int *nr, int *mr);
 
-int main(void) {
-  int op_code = 0;
-  if (scanf("%d", &op_code) != 1 || op_code < 1 || op_code > 3) {
-    printf("n/a");
+// Вспомогательная функция для чтения одной матрицы
+int read_one_matrix(int **mat, int *rows, int *cols, int exp_n, int exp_m) {
+  int n, m;
+  if (scanf("%d %d", &n, &m) != 2 || n <= 0 || m <= 0)
+    return 0;
+  if (exp_n > 0 && (n != exp_n || m != exp_m))
+    return 0;
+
+  *mat = alloc_matrix(n, m);
+  if (!*mat)
+    return 0;
+  if (!input_matrix(*mat, n, m)) {
+    free_matrix(*mat, n);
+    *mat = NULL;
     return 0;
   }
 
-  int n1 = 0, m1 = 0, n2 = 0, m2 = 0; // Initialized to zero
-  int **mat1 = NULL, **mat2 = NULL;
-  int **result = NULL;
-  int rn = 0, rm = 0;
-  int err = 0;
+  *rows = n;
+  *cols = m;
+  return 1;
+}
 
-  if (op_code == 1 || op_code == 2) {
-    if (scanf("%d %d", &n1, &m1) != 2 || n1 <= 0 || m1 <= 0) {
+int main(void) {
+  int op_code = 0, n1 = 0, m1 = 0, n2 = 0, m2 = 0;
+  int **mat1 = NULL, **mat2 = NULL, **result = NULL;
+  int rn = 0, rm = 0, err = 0;
+
+  if (scanf("%d", &op_code) != 1 || op_code < 1 || op_code > 3) {
+    err = 1;
+  } else if (op_code == 1 || op_code == 2) {
+    if (!read_one_matrix(&mat1, &n1, &m1, 0, 0)) {
+      err = 1;
+    } else if (op_code == 1 && !read_one_matrix(&mat2, &n2, &m2, n1, m1)) {
+      err = 1;
+    } else if (op_code == 2 && !read_one_matrix(&mat2, &n2, &m2, 0, 0)) {
       err = 1;
     }
-    if (!err) {
-      mat1 = alloc_matrix(n1, m1);
-      if (!mat1 || !input_matrix(mat1, n1, m1))
-        err = 1;
-    }
-    if (op_code == 1 && !err) {
-      if (scanf("%d %d", &n2, &m2) != 2 || n2 != n1 || m2 != m1)
-        err = 1;
-      if (!err) {
-        mat2 = alloc_matrix(n2, m2);
-        if (!mat2 || !input_matrix(mat2, n2, m2))
-          err = 1;
-      }
-    } else if (op_code == 2 && !err) {
-      if (scanf("%d %d", &n2, &m2) != 2 || n2 <= 0 || m2 <= 0)
-        err = 1;
-      if (!err) {
-        mat2 = alloc_matrix(n2, m2);
-        if (!mat2 || !input_matrix(mat2, n2, m2))
-          err = 1;
-      }
-    }
-  } else {
-    if (scanf("%d %d", &n1, &m1) != 2 || n1 <= 0 || m1 <= 0)
+  } else { // op_code == 3
+    if (!read_one_matrix(&mat1, &n1, &m1, 0, 0)) {
       err = 1;
-    if (!err) {
-      mat1 = alloc_matrix(n1, m1);
-      if (!mat1 || !input_matrix(mat1, n1, m1))
-        err = 1;
     }
   }
 
   if (!err) {
-    if (op_code == 1) {
+    if (op_code == 1)
       err = sum_matrices(mat1, n1, m1, mat2, n2, m2, &result, &rn, &rm);
-    } else if (op_code == 2) {
+    else if (op_code == 2)
       err = mul_matrices(mat1, n1, m1, mat2, n2, m2, &result, &rn, &rm);
-    } else {
+    else
       err = transpose_matrix(mat1, n1, m1, &result, &rn, &rm);
-    }
   }
 
-  if (err) {
+  if (err)
     printf("n/a");
-  } else {
+  else
     output_matrix(result, rn, rm);
-  }
 
   free_matrix(mat1, n1);
   free_matrix(mat2, n2);

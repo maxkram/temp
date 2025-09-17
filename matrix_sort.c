@@ -15,34 +15,36 @@ void print_matrix(int **matrix, int N, int M);
 int main(void) {
   int method = 0, N = 0, M = 0;
   int **matrix = NULL;
-  if (scanf("%d", &method) != 1 || method < 1 || method > 3) {
-    printf("n/a");
-    return 0;
-  }
-  if (scanf("%d %d", &N, &M) != 2 || N <= 0 || M <= 0) {
-    printf("n/a");
-    return 0;
+  int success = 1;
+
+  if (scanf("%d", &method) != 1 || method < 1 || method > 3)
+    success = 0;
+  if (success && (scanf("%d %d", &N, &M) != 2 || N <= 0 || M <= 0))
+    success = 0;
+
+  if (success) {
+    if (method == 1)
+      matrix = alloc_method_1(N, M);
+    else if (method == 2)
+      matrix = alloc_method_2(N, M);
+    else
+      matrix = alloc_method_3(N, M);
+    success = (matrix != NULL);
   }
 
-  if (method == 1) {
-    matrix = alloc_method_1(N, M);
-  } else if (method == 2) {
-    matrix = alloc_method_2(N, M);
-  } else {
-    matrix = alloc_method_3(N, M);
-  }
-  if (!matrix) {
+  if (success)
+    success = input_matrix(matrix, N, M);
+
+  if (!success) {
     printf("n/a");
-    return 0;
-  }
-  if (!input_matrix(matrix, N, M)) {
-    printf("n/a");
-    if (method == 2)
-      free_method_2(matrix);
-    else if (method == 3)
-      free_method_3(matrix, N);
-    else
-      free(matrix);
+    if (matrix != NULL) {
+      if (method == 2)
+        free_method_2(matrix);
+      else if (method == 3)
+        free_method_3(matrix, N);
+      else
+        free(matrix);
+    }
     return 0;
   }
 
@@ -55,43 +57,58 @@ int main(void) {
     free_method_3(matrix, N);
   else
     free(matrix);
+
   return 0;
 }
 
 int **alloc_method_1(int N, int M) {
-  int **matrix = malloc(N * sizeof(int *) + N * M * sizeof(int));
-  if (!matrix)
-    return NULL;
-  int *data = (int *)(matrix + N);
-  for (int i = 0; i < N; i++)
-    matrix[i] = data + i * M;
+  int **matrix = NULL;
+
+  matrix = malloc(N * sizeof(int *) + N * M * sizeof(int));
+  if (matrix != NULL) {
+    int *data = (int *)(matrix + N);
+    for (int i = 0; i < N; i++)
+      matrix[i] = data + i * M;
+  }
   return matrix;
 }
 
 int **alloc_method_2(int N, int M) {
-  int **matrix = malloc(N * sizeof(int *));
-  int *data = malloc(N * M * sizeof(int));
-  if (!matrix || !data) {
-    free(matrix);
-    free(data);
-    return NULL;
+  int **matrix = NULL;
+
+  matrix = malloc(N * sizeof(int *));
+  if (matrix != NULL) {
+    int *data = malloc(N * M * sizeof(int));
+    if (data != NULL) {
+      for (int i = 0; i < N; i++)
+        matrix[i] = data + i * M;
+    } else {
+      free(matrix);
+      matrix = NULL;
+    }
   }
-  for (int i = 0; i < N; i++)
-    matrix[i] = data + i * M;
   return matrix;
 }
 
 int **alloc_method_3(int N, int M) {
-  int **matrix = malloc(N * sizeof(int *));
-  if (!matrix)
-    return NULL;
-  for (int i = 0; i < N; i++) {
-    matrix[i] = malloc(M * sizeof(int));
-    if (!matrix[i]) {
+  int **matrix = NULL;
+
+  matrix = malloc(N * sizeof(int *));
+  if (matrix != NULL) {
+    int success = 1;
+    int i = 0;
+
+    for (i = 0; i < N && success; i++) {
+      matrix[i] = malloc(M * sizeof(int));
+      if (matrix[i] == NULL)
+        success = 0;
+    }
+
+    if (!success) {
       for (int j = 0; j < i; j++)
         free(matrix[j]);
       free(matrix);
-      return NULL;
+      matrix = NULL;
     }
   }
   return matrix;
@@ -109,11 +126,14 @@ void free_method_3(int **matrix, int N) {
 }
 
 int input_matrix(int **matrix, int N, int M) {
-  for (int i = 0; i < N; i++)
-    for (int j = 0; j < M; j++)
+  int success = 1;
+  for (int i = 0; i < N && success; i++) {
+    for (int j = 0; j < M && success; j++) {
       if (scanf("%d", &matrix[i][j]) != 1)
-        return 0;
-  return 1;
+        success = 0;
+    }
+  }
+  return success;
 }
 
 int sum_row(const int *row, int M) {

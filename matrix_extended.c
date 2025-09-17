@@ -19,177 +19,184 @@ int main(void) {
   int **matrix = NULL;
   int *rowmax = NULL, *colmin = NULL;
 
-  if (inputProperties(&type, &rows, &cols)) {
+  success = inputProperties(&type, &rows, &cols);
+
+  if (success) {
     if (type == 1) {
       static int stat_matrix[MAXSIZE][MAXSIZE];
       matrix = (int **)stat_matrix;
-    } else if (type == 2) {
+    } else if (type == 2)
       matrix = alloc_single(rows, cols, &error);
-    } else if (type == 3) {
+    else if (type == 3)
       matrix = alloc_double(rows, cols, &error);
-    } else if (type == 4) {
+    else if (type == 4)
       matrix = alloc_multiple(rows, cols, &error);
-    }
 
-    if (error == 0 && matrix != NULL) {
-      if (input_matrix(matrix, rows, cols, type)) {
-        if (compute_min_max(matrix, rows, cols, &rowmax, &colmin, type) == 0) {
-          output_matrix(matrix, rows, cols, rowmax, colmin, type, 0);
-          success = 1;
-        }
-      }
-    }
+    success = (error == 0 && matrix != NULL);
   }
 
-  if (!success) {
+  if (success)
+    success = input_matrix(matrix, rows, cols, type);
+  if (success)
+    success =
+        (compute_min_max(matrix, rows, cols, &rowmax, &colmin, type) == 0);
+  if (success)
+    output_matrix(matrix, rows, cols, rowmax, colmin, type, 0);
+  if (!success)
     printf("n/a");
-  }
 
   free(rowmax);
   free(colmin);
-  if (type != 1) {
+  if (type != 1)
     free_matrix(matrix, rows, type);
-  }
 
   return 0;
 }
 
 int inputProperties(int *type, int *rows, int *cols) {
-  int err = 0;
-  if (scanf("%d", type) != 1 || *type < 1 || *type > 4) {
-    err = 1;
-  }
-  if (err == 0 && scanf("%d %d", rows, cols) != 2) {
-    err = 1;
-  }
-  if (err == 0 && (*rows <= 0 || *cols <= 0)) {
-    err = 1;
-  }
-  if (err == 0 && *type == 1 && (*rows > MAXSIZE || *cols > MAXSIZE)) {
-    err = 1;
-  }
-  return (err == 0);
+  int result = 1;
+
+  if (scanf("%d", type) != 1 || *type < 1 || *type > 4)
+    result = 0;
+  if (result && scanf("%d %d", rows, cols) != 2)
+    result = 0;
+  if (result && (*rows <= 0 || *cols <= 0))
+    result = 0;
+  if (result && *type == 1 && (*rows > MAXSIZE || *cols > MAXSIZE))
+    result = 0;
+
+  return result;
 }
 
 int **alloc_single(int rows, int cols, int *error) {
   int **matrix = malloc(rows * sizeof(int *) + rows * cols * sizeof(int));
-  if (!matrix) {
+
+  if (matrix != NULL) {
+    int *data = (int *)(matrix + rows);
+    for (int i = 0; i < rows; i++)
+      matrix[i] = data + i * cols;
+  } else {
     *error = 1;
-    return NULL;
   }
-  int *data = (int *)(matrix + rows);
-  for (int i = 0; i < rows; i++) {
-    matrix[i] = data + i * cols;
-  }
+
   return matrix;
 }
 
 int **alloc_double(int rows, int cols, int *error) {
-  int **matrix = malloc(rows * sizeof(int *));
-  int *data = malloc(rows * cols * sizeof(int));
-  if (!matrix || !data) {
-    free(matrix);
-    free(data);
+  int **matrix = NULL;
+  int *data = NULL;
+
+  matrix = malloc(rows * sizeof(int *));
+  if (matrix != NULL) {
+    data = malloc(rows * cols * sizeof(int));
+    if (data != NULL) {
+      for (int i = 0; i < rows; i++)
+        matrix[i] = data + i * cols;
+    } else {
+      free(matrix);
+      matrix = NULL;
+    }
+  }
+
+  if (matrix == NULL)
     *error = 1;
-    return NULL;
-  }
-  for (int i = 0; i < rows; i++) {
-    matrix[i] = data + i * cols;
-  }
   return matrix;
 }
 
 int **alloc_multiple(int rows, int cols, int *error) {
-  int **matrix = malloc(rows * sizeof(int *));
-  if (!matrix) {
-    *error = 1;
-    return NULL;
-  }
+  int **matrix = NULL;
   int i = 0;
   int err_flag = 0;
-  while (i < rows && err_flag == 0) {
-    matrix[i] = malloc(cols * sizeof(int));
-    if (!matrix[i]) {
-      err_flag = 1;
+
+  matrix = malloc(rows * sizeof(int *));
+  if (matrix != NULL) {
+    for (i = 0; i < rows && !err_flag; i++) {
+      matrix[i] = malloc(cols * sizeof(int));
+      if (matrix[i] == NULL)
+        err_flag = 1;
     }
-    i++;
+
+    if (err_flag) {
+      for (int j = 0; j < i; j++)
+        free(matrix[j]);
+      free(matrix);
+      matrix = NULL;
+    }
   }
-  if (err_flag) {
-    for (int j = 0; j < i - 1; j++) {
-      free(matrix[j]);
-    }
-    free(matrix);
+
+  if (matrix == NULL)
     *error = 1;
-    return NULL;
-  }
   return matrix;
 }
 
 void free_matrix(int **matrix, int rows, int type) {
-  if (type == 2) {
+  if (type == 2)
     free(matrix);
-  } else if (type == 3) {
+  else if (type == 3) {
     free(matrix[0]);
     free(matrix);
   } else if (type == 4) {
-    for (int i = 0; i < rows; i++) {
+    for (int i = 0; i < rows; i++)
       free(matrix[i]);
-    }
     free(matrix);
   }
 }
 
 int input_matrix(int **matrix, int rows, int cols, int type) {
-  for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < cols; j++) {
-      int *elem = NULL;
-      if (type == 1) {
-        elem = (int *)(matrix + i * cols + j);
-      } else {
-        elem = &(matrix[i][j]);
-      }
-      if (scanf("%d", elem) != 1) {
-        return 0;
-      }
+  int result = 1;
+
+  for (int i = 0; i < rows && result; i++) {
+    for (int j = 0; j < cols && result; j++) {
+      int *elem =
+          (type == 1) ? (int *)(matrix + i * cols + j) : &(matrix[i][j]);
+      if (scanf("%d", elem) != 1)
+        result = 0;
     }
   }
-  return 1;
+
+  return result;
 }
 
 int compute_min_max(int **matrix, int rows, int cols, int **rowmax,
                     int **colmin, int type) {
+  int result = 0;
+
   *rowmax = malloc(rows * sizeof(int));
   *colmin = malloc(cols * sizeof(int));
-  if (!*rowmax || !*colmin) {
+
+  if (*rowmax == NULL || *colmin == NULL) {
     free(*rowmax);
     free(*colmin);
-    return 1;
+    *rowmax = NULL;
+    *colmin = NULL;
+    result = 1;
   }
 
-  for (int i = 0; i < rows; i++) {
-    int first_element =
-        (type == 1) ? *((int *)(matrix) + i * cols) : matrix[i][0];
-    (*rowmax)[i] = first_element;
-  }
+  if (result == 0) {
+    for (int i = 0; i < rows; i++) {
+      int first_element =
+          (type == 1) ? *((int *)(matrix) + i * cols) : matrix[i][0];
+      (*rowmax)[i] = first_element;
+    }
 
-  for (int j = 0; j < cols; j++) {
-    int first_element = (type == 1) ? *((int *)(matrix) + j) : matrix[0][j];
-    (*colmin)[j] = first_element;
-  }
-
-  for (int i = 0; i < rows; i++) {
     for (int j = 0; j < cols; j++) {
-      int current =
-          (type == 1) ? *((int *)(matrix) + i * cols + j) : matrix[i][j];
-      if (current > (*rowmax)[i]) {
-        (*rowmax)[i] = current;
-      }
-      if (current < (*colmin)[j]) {
-        (*colmin)[j] = current;
+      int first_element = (type == 1) ? *((int *)(matrix) + j) : matrix[0][j];
+      (*colmin)[j] = first_element;
+    }
+
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < cols; j++) {
+        int current =
+            (type == 1) ? *((int *)(matrix) + i * cols + j) : matrix[i][j];
+        if (current > (*rowmax)[i])
+          (*rowmax)[i] = current;
+        if (current < (*colmin)[j])
+          (*colmin)[j] = current;
       }
     }
   }
-  return 0;
+
+  return result;
 }
 
 void output_matrix(int **matrix, int rows, int cols, const int *rowmax,
@@ -198,35 +205,32 @@ void output_matrix(int **matrix, int rows, int cols, const int *rowmax,
     printf("n/a");
     return;
   }
+
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < cols; j++) {
       const int *elem =
           (type == 1) ? (int *)(matrix + i * cols + j) : &(matrix[i][j]);
       printf("%d", *elem);
-      if (j != cols - 1) {
+      if (j != cols - 1)
         printf(" ");
-      }
     }
-    if (i != rows - 1) {
+    if (i != rows - 1)
       printf("\n");
-    }
   }
 
   printf("\n");
 
   for (int i = 0; i < rows; i++) {
     printf("%d", rowmax[i]);
-    if (i != rows - 1) {
+    if (i != rows - 1)
       printf(" ");
-    }
   }
 
   printf("\n");
 
   for (int j = 0; j < cols; j++) {
     printf("%d", colmin[j]);
-    if (j != cols - 1) {
+    if (j != cols - 1)
       printf(" ");
-    }
   }
 }
