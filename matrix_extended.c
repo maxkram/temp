@@ -111,7 +111,7 @@ int **alloc_multiple(int rows, int cols, int *error) {
   }
 
   int i = 0;
-  int err_flag = 0; // Declare here right before usage
+  int err_flag = 0;
 
   while (i < rows && !err_flag) {
     matrix[i] = malloc(cols * sizeof(int));
