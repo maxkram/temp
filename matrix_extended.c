@@ -104,28 +104,34 @@ int **alloc_double(int rows, int cols, int *error) {
 }
 
 int **alloc_multiple(int rows, int cols, int *error) {
-  int **matrix = NULL;
-  int i = 0;
-  int err_flag = 0;
-
-  matrix = malloc(rows * sizeof(int *));
-  if (matrix != NULL) {
-    for (i = 0; i < rows && !err_flag; i++) {
-      matrix[i] = malloc(cols * sizeof(int));
-      if (matrix[i] == NULL)
-        err_flag = 1;
-    }
-
-    if (err_flag) {
-      for (int j = 0; j < i; j++)
-        free(matrix[j]);
-      free(matrix);
-      matrix = NULL;
-    }
+  int **matrix = malloc(rows * sizeof(int *));
+  if (!matrix) {
+    *error = 1;
+    return NULL;
   }
 
-  if (matrix == NULL)
+  int i = 0;
+  int err_flag = 0; // Declare here right before usage
+
+  while (i < rows && !err_flag) {
+    matrix[i] = malloc(cols * sizeof(int));
+    if (!matrix[i]) {
+      err_flag = 1;
+    }
+    i++;
+  }
+
+  if (err_flag) {
+    int j = 0;
+    while (j < i) {
+      free(matrix[j]);
+      j++;
+    }
+    free(matrix);
+    matrix = NULL;
     *error = 1;
+  }
+
   return matrix;
 }
 
