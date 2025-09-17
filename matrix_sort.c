@@ -35,28 +35,21 @@ int main(void) {
   if (success)
     success = input_matrix(matrix, N, M);
 
-  if (!success) {
+  if (success) {
+    sort_matrix(matrix, N, M);
+    print_matrix(matrix, N, M);
+  } else {
     printf("n/a");
-    if (matrix != NULL) {
-      if (method == 2)
-        free_method_2(matrix);
-      else if (method == 3)
-        free_method_3(matrix, N);
-      else
-        free(matrix);
-    }
-    return 0;
   }
 
-  sort_matrix(matrix, N, M);
-  print_matrix(matrix, N, M);
-
-  if (method == 2)
-    free_method_2(matrix);
-  else if (method == 3)
-    free_method_3(matrix, N);
-  else
-    free(matrix);
+  if (matrix != NULL) {
+    if (method == 2)
+      free_method_2(matrix);
+    else if (method == 3)
+      free_method_3(matrix, N);
+    else
+      free(matrix);
+  }
 
   return 0;
 }

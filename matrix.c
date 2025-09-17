@@ -22,16 +22,10 @@ int handle_dyn_three(int N, int M);
 int main(void) {
   int opt, N, M;
   int success = 0;
-  int valid_input = 0;
 
   if (scanf("%d", &opt) == 1 && opt > 0 && opt <= 4) {
-    if (input_size(&N, &M, opt)) {
-      valid_input = 1;
-    }
-  }
-  if (!valid_input) {
-    printf("n/a\n");
-    return 0;
+    if (!input_size(&N, &M, opt))
+      return printf("n/a"), 0;
   }
 
   if (opt == 1) {
@@ -45,7 +39,7 @@ int main(void) {
   }
 
   if (!success) {
-    printf("n/a\n");
+    printf("n/a");
   }
   return 0;
 }
@@ -186,16 +180,26 @@ void output_matrix_dyn(int **matrix, int N, int M) {
 }
 
 int **alloc_dyn_one(int N, int M) {
-  int **matrix = malloc(N * sizeof(int *) + N * M * sizeof(int));
+  int **matrix = NULL;
+  int success = 1;
+
+  matrix = malloc(N * sizeof(int *) + N * M * sizeof(int));
   if (matrix == NULL) {
-    return NULL;
+    success = 0;
+  } else {
+    int *data = (int *)(matrix + N);
+    int i = 0;
+    while (i < N) {
+      matrix[i] = data + i * M;
+      i++;
+    }
   }
-  int *data = (int *)(matrix + N);
-  int i = 0;
-  while (i < N) {
-    matrix[i] = data + i * M;
-    i++;
+
+  if (!success) {
+    free(matrix);
+    matrix = NULL;
   }
+
   return matrix;
 }
 

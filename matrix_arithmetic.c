@@ -12,27 +12,7 @@ int mul_matrices(int **a, int n1, int m1, int **b, int n2, int m2, int ***res,
                  int *nr, int *mr);
 int transpose_matrix(int **a, int n, int m, int ***res, int *nr, int *mr);
 
-// Вспомогательная функция для чтения одной матрицы
-int read_one_matrix(int **mat, int *rows, int *cols, int exp_n, int exp_m) {
-  int n, m;
-  if (scanf("%d %d", &n, &m) != 2 || n <= 0 || m <= 0)
-    return 0;
-  if (exp_n > 0 && (n != exp_n || m != exp_m))
-    return 0;
-
-  *mat = alloc_matrix(n, m);
-  if (!*mat)
-    return 0;
-  if (!input_matrix(*mat, n, m)) {
-    free_matrix(*mat, n);
-    *mat = NULL;
-    return 0;
-  }
-
-  *rows = n;
-  *cols = m;
-  return 1;
-}
+int read_one_matrix(int ***mat, int *rows, int *cols, int exp_n, int exp_m);
 
 int main(void) {
   int op_code = 0, n1 = 0, m1 = 0, n2 = 0, m2 = 0;
@@ -49,7 +29,7 @@ int main(void) {
     } else if (op_code == 2 && !read_one_matrix(&mat2, &n2, &m2, 0, 0)) {
       err = 1;
     }
-  } else { // op_code == 3
+  } else {
     if (!read_one_matrix(&mat1, &n1, &m1, 0, 0)) {
       err = 1;
     }
@@ -76,19 +56,59 @@ int main(void) {
   return 0;
 }
 
-int **alloc_matrix(int rows, int cols) {
-  int **matrix = malloc(rows * sizeof(int *));
-  if (!matrix)
-    return NULL;
-  for (int i = 0; i < rows; i++) {
-    matrix[i] = malloc(cols * sizeof(int));
-    if (!matrix[i]) {
-      for (int j = 0; j < i; j++)
-        free(matrix[j]);
-      free(matrix);
-      return NULL;
+int read_one_matrix(int ***mat, int *rows, int *cols, int exp_n, int exp_m) {
+  int n = 0, m = 0;
+  int success = 1;
+
+  if (scanf("%d %d", &n, &m) != 2 || n <= 0 || m <= 0) {
+    success = 0;
+  } else if (exp_n > 0 && (n != exp_n || m != exp_m)) {
+    success = 0;
+  } else {
+    *mat = alloc_matrix(n, m);
+    if (*mat == NULL) {
+      success = 0;
+    } else {
+      if (!input_matrix(*mat, n, m)) {
+        free_matrix(*mat, n);
+        *mat = NULL;
+        success = 0;
+      } else {
+        *rows = n;
+        *cols = m;
+      }
     }
   }
+
+  return success;
+}
+
+int **alloc_matrix(int rows, int cols) {
+  int **matrix = NULL;
+  int success = 1;
+
+  matrix = malloc(rows * sizeof(int *));
+  if (!matrix) {
+    success = 0;
+  } else {
+    int i;
+    for (i = 0; i < rows; i++) {
+      if (!success)
+        break;
+      matrix[i] = malloc(cols * sizeof(int));
+      if (!matrix[i]) {
+        success = 0;
+      }
+    }
+    if (!success) {
+      for (int j = 0; j < i; j++) {
+        free(matrix[j]);
+      }
+      free(matrix);
+      matrix = NULL;
+    }
+  }
+
   return matrix;
 }
 
@@ -102,11 +122,17 @@ void free_matrix(int **matrix, int rows) {
 }
 
 int input_matrix(int **matrix, int rows, int cols) {
-  for (int i = 0; i < rows; i++)
-    for (int j = 0; j < cols; j++)
-      if (scanf("%d", &matrix[i][j]) != 1)
-        return 0;
-  return 1;
+  int success = 1;
+
+  for (int i = 0; i < rows && success; i++) {
+    for (int j = 0; j < cols && success; j++) {
+      if (scanf("%d", &matrix[i][j]) != 1) {
+        success = 0;
+      }
+    }
+  }
+
+  return success;
 }
 
 void output_matrix(int **matrix, int rows, int cols) {
@@ -121,20 +147,30 @@ void output_matrix(int **matrix, int rows, int cols) {
 
 int sum_matrices(int **a, int n1, int m1, int **b, int n2, int m2, int ***res,
                  int *nr, int *mr) {
-  if (n1 != n2 || m1 != m2)
-    return 1;
-  *nr = n1;
-  *mr = m1;
-  *res = alloc_matrix(*nr, *mr);
-  if (!*res)
-    return 1;
+  int retval = 0;
 
-  for (int i = 0; i < *nr; i++) {
-    for (int j = 0; j < *mr; j++) {
-      (*res)[i][j] = a[i][j] + b[i][j];
+  if (n1 != n2 || m1 != m2) {
+    retval = 1;
+  }
+
+  if (retval == 0) {
+    *nr = n1;
+    *mr = m1;
+    *res = alloc_matrix(*nr, *mr);
+    if (*res == NULL) {
+      retval = 1;
     }
   }
-  return 0;
+
+  if (retval == 0) {
+    for (int i = 0; i < *nr; i++) {
+      for (int j = 0; j < *mr; j++) {
+        (*res)[i][j] = a[i][j] + b[i][j];
+      }
+    }
+  }
+
+  return retval;
 }
 
 int mul_matrices(int **a, int n1, int m1, int **b, int n2, int m2, int ***res,
@@ -159,16 +195,20 @@ int mul_matrices(int **a, int n1, int m1, int **b, int n2, int m2, int ***res,
 }
 
 int transpose_matrix(int **a, int n, int m, int ***res, int *nr, int *mr) {
+  int retval = 0;
+
   *nr = m;
   *mr = n;
   *res = alloc_matrix(*nr, *mr);
-  if (!*res)
-    return 1;
-
-  for (int i = 0; i < *nr; i++) {
-    for (int j = 0; j < *mr; j++) {
-      (*res)[i][j] = a[j][i];
+  if (*res == NULL) {
+    retval = 1;
+  } else {
+    for (int i = 0; i < *nr; i++) {
+      for (int j = 0; j < *mr; j++) {
+        (*res)[i][j] = a[j][i];
+      }
     }
   }
-  return 0;
+
+  return retval;
 }
